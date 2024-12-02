@@ -8,36 +8,50 @@ datasource db {
 }
 
 model User {
-  id                   Int       @id @default(autoincrement())
-  email                String    @unique
+  id                   Int         @id @default(autoincrement())
+  email                String      @unique
   password             String
-  role                 Role      @default(USER)
-  firstName            String    @default("John")
-  lastName             String    @default("Doe")
-  approvedHours        Float     @default(0)
-  pendingHours         Float     @default(0)
-  billingNotifications Boolean   @default(false)
-  emailNotifications   Boolean   @default(false)
-  reminders            Boolean   @default(false) // Added for notifications
+  role                 Role        @default(USER)
+  firstName            String      @default("John")
+  lastName             String      @default("Doe")
+  approvedHours        Float       @default(0)
+  pendingHours         Float       @default(0)
+  billingNotifications Boolean     @default(false)
+  emailNotifications   Boolean     @default(false)
+  reminders            Boolean     @default(false)
   phone                String?
   billings             Billing[]
-  events               Event[]
-  cardNumber           String?   // Card number for payment details
-  cardExpiry           String?   // Expiry date for payment details (format: MM/YY)
-  cardCVV              String?   // CVV for payment details
+  events               UserEvent[] // Connects users to the events they sign up for
+  hoursLogs            HoursLog[] // Added opposite relation field
+  cardNumber           String? // Card number for payment details
+  cardExpiry           String? // Expiry date for payment details (format: MM/YY)
+  cardCVV              String? // CVV for payment details
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  status               String     @default("pending") // Add this field if required
 }
 
 model Event {
-  id          Int       @id @default(autoincrement())
-  eventId     Int
+  id          Int    @id @default(autoincrement())
   title       String
   description String
   date        String
   location    String
-  owner       String
   hours       Int
   time        String
-  User        User      @relation(fields: [eventId], references: [id])
+  status      String @default("pending")
+  users       UserEvent[]  // Connects events to the users signed up for them
+}
+
+model UserEvent {
+  id        Int     @id @default(autoincrement())
+  userId    Int
+  eventId   Int
+  User      User    @relation(fields: [userId], references: [id])
+  Event     Event   @relation(fields: [eventId], references: [id])
+
+  // Ensure a user can't sign up for the same event twice
+  @@unique([userId, eventId])
 }
 
 model Stuff {
@@ -53,6 +67,16 @@ model Billing {
   userId      Int
   amount      Float
   description String
+  createdAt   DateTime @default(now())
+  User        User     @relation(fields: [userId], references: [id])
+}
+
+model HoursLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  action      String
+  hours       Float
+  performedBy String
   createdAt   DateTime @default(now())
   User        User     @relation(fields: [userId], references: [id])
 }
